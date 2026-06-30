@@ -246,7 +246,7 @@ function _reorderSheets(ss) {
 
 /** Serve standalone web app */
 function doGet(e) {
-  var VALID = {dashboard:1, inspection:1, history:1};
+  var VALID = {dashboard:1, inspection:1, history:1, master:1, settings:1};
   var view = (e && e.parameter && VALID[e.parameter.view]) ? e.parameter.view : '';
   var tpl = HtmlService.createTemplateFromFile('Index');
   tpl.initialView = view;

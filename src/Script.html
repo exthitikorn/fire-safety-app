@@ -167,8 +167,9 @@ function submitAdminPin() {
     .withSuccessHandler(function(ok) {
       if (ok) {
         adminUnlocked = true;
+        var target = pendingAdminView;
         closePinModal();
-        if (pendingAdminView) { showView(pendingAdminView); pendingAdminView = null; }
+        if (target) showView(target);
       } else {
         document.getElementById('pin-error').style.display = 'block';
         document.getElementById('pin-input').select();
