@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <script>var INITIAL_VIEW = '<?= initialView ?>';</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>🔥 ตรวจสอบอุปกรณ์ดับเพลิง</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Inter:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <?!= HtmlService.createHtmlOutputFromFile('Style').getContent(); ?>
+</head>
+<body>
+
+<!-- ── Top Bar ── -->
+<header class="topbar">
+  <div class="topbar-title">🔥 ระบบตรวจสอบอุปกรณ์ดับเพลิง</div>
+  <div class="topbar-dtabs" id="dtabs">
+    <button class="dtab active" onclick="showView('dashboard')">📊 Dashboard</button>
+    <button class="dtab"       onclick="showView('inspection')">📝 บันทึกผลตรวจ</button>
+    <button class="dtab"       onclick="showView('history')">📋 ประวัติ</button>
+    <button class="dtab"       onclick="showView('master')">🗂 ข้อมูลหลัก</button>
+    <button class="dtab"       onclick="showView('settings')">⚙️ ตั้งค่า</button>
+  </div>
+</header>
+
+<!-- ── Bottom Nav ── -->
+<nav class="bnav">
+  <button class="bnav-tab active" onclick="showView('dashboard')"><span class="bnav-icon">📊</span>Dashboard</button>
+  <button class="bnav-tab"       onclick="showView('inspection')"><span class="bnav-icon">📝</span>บันทึก</button>
+  <button class="bnav-tab"       onclick="showView('history')"><span class="bnav-icon">📋</span>ประวัติ</button>
+  <button class="bnav-tab"       onclick="showView('master')"><span class="bnav-icon">🗂</span>ข้อมูลหลัก</button>
+  <button class="bnav-tab"       onclick="showView('settings')"><span class="bnav-icon">⚙️</span>ตั้งค่า</button>
+</nav>
+
+<!-- ════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════ -->
+<div id="view-dashboard" class="view active">
+  <div class="page">
+    <div class="sec-hdr">
+      <div>
+        <div class="sec-title">ภาพรวม</div>
+        <div style="font-size:12px;color:var(--muted)" id="dash-updated">กำลังโหลด…</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">⟳ รีเฟรช</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card c-total">  <div class="kpi-val" id="kpi-total">—</div><div class="kpi-lbl">ทั้งหมด</div></div>
+      <div class="kpi-card c-pass">   <div class="kpi-val" id="kpi-pass">—</div> <div class="kpi-lbl">ผ่าน</div></div>
+      <div class="kpi-card c-fail">   <div class="kpi-val" id="kpi-fail">—</div> <div class="kpi-lbl">ไม่ผ่าน</div></div>
+    </div>
+
+    <div class="card" id="type-card" style="display:none">
+      <div class="card-title">🧯 สรุปตามประเภทอุปกรณ์</div>
+      <div id="type-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏢 สรุปรายอาคาร</div>
+      <div id="bld-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--fail)">⚠️ เกินกำหนดตรวจสอบ</div>
+      <div id="overdue-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:#FF6D00">🔔 ใกล้ครบกำหนด (≤ 7 วัน)</div>
+      <div id="upcoming-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     INSPECTION FORM
+════════════════════════════════════ -->
+<div id="view-inspection" class="view">
+  <div class="page" style="padding-bottom: calc(var(--bnav-total) + 72px)">
+
+    <div id="ins-loading" class="card">
+      <div class="loading"><div class="spinner"></div><br><br>กำลังโหลดข้อมูล…</div>
+    </div>
+
+    <div id="ins-form" style="display:none">
+      <div class="card">
+        <div class="card-title">🧯 อุปกรณ์และสถานที่</div>
+        <div class="field">
+          <label class="label">ประเภทอุปกรณ์</label>
+          <select class="sel" id="i-eqtype" onchange="onIEqType()"><option value="">— ทุกประเภท —</option></select>
+        </div>
+        <div class="field">
+          <label class="label">อุปกรณ์ <span class="req">*</span></label>
+          <input class="inp" id="i-eq-text" list="i-eq-opts" placeholder="— พิมพ์ชื่อหรือรหัสอุปกรณ์ —" oninput="onIEqSearch()" autocomplete="off" />
+          <datalist id="i-eq-opts"></datalist>
+          <input type="hidden" id="i-eq" />
+        </div>
+        <input type="hidden" id="i-loc" />
+        <div id="i-place-auto" style="display:none">
+          <div class="place-card">
+            <div class="place-row"><span class="place-icon">🏢</span><span id="i-bld-disp" class="place-val">—</span></div>
+            <div class="place-row"><span class="place-icon">🏬</span><span id="i-fl-disp"  class="place-val">—</span></div>
+            <div class="place-row"><span class="place-icon">📍</span><span id="i-loc-disp" class="place-val">—</span></div>
+          </div>
+        </div>
+        <div id="i-place-manual" style="display:none">
+          <div class="field" style="margin-top:4px">
+            <label class="label">สถานที่ <span class="req">*</span></label>
+            <input class="inp" id="i-loc-text" list="i-loc-opts" placeholder="— พิมพ์หรือเลือกสถานที่ —" oninput="onILocManual()" autocomplete="off" />
+            <datalist id="i-loc-opts"></datalist>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔍 ผลการตรวจสอบ</div>
+        <div class="field">
+          <label class="label">ผลการตรวจสอบ <span class="req">*</span></label>
+          <div class="result-group">
+            <div class="result-btn r-pass" id="rb-pass" onclick="selResult('ปกติ')"><span class="ri">✅</span>ปกติ</div>
+            <div class="result-btn"        id="rb-fail" onclick="selResult('ชำรุด')"><span class="ri">❌</span>ชำรุด</div>
+          </div>
+        </div>
+        <div class="remark-wrap" id="remark-wrap">
+          <label class="label">หมายเหตุ <span class="req" id="remark-req">*</span></label>
+          <textarea class="ta" id="i-remark" rows="3" placeholder="ระบุสาเหตุ / อาการ / การดำเนินการ…"></textarea>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label class="label">วันที่ตรวจสอบ <span class="req">*</span></label>
+          <input type="date" class="inp" id="i-date" />
+        </div>
+        <div class="field">
+          <label class="label">วันที่ตรวจสอบครั้งถัดไป <span class="req">*</span></label>
+          <input type="date" class="inp" id="i-next" />
+          <div class="chip-row">
+            <span class="chip" onclick="setNextDate(1)">+1 เดือน</span>
+            <span class="chip" onclick="setNextDate(3)">+3 เดือน</span>
+            <span class="chip" onclick="setNextDate(6)">+6 เดือน</span>
+            <span class="chip" onclick="setNextDate(12)">+1 ปี</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👤 ผู้ตรวจสอบ</div>
+        <div class="field">
+          <label class="label">หน่วยงานรับผิดชอบ <span class="req">*</span></label>
+          <select class="sel" id="i-resp"><option value="">— เลือกหน่วยงาน —</option></select>
+        </div>
+        <div class="field">
+          <label class="label">หน่วยงานผู้ตรวจสอบ <span class="req">*</span></label>
+          <select class="sel" id="i-idept"><option value="">— เลือกหน่วยงาน —</option></select>
+        </div>
+        <div class="field">
+          <label class="label">ชื่อผู้ตรวจสอบ <span class="req">*</span></label>
+          <input type="text" class="inp" id="i-name" placeholder="ชื่อ-นามสกุล" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Submit Bar -->
+  <div class="submit-bar" id="submit-bar">
+    <button class="btn btn-success btn-block" id="btn-submit" onclick="submitIns()">💾 บันทึกผลการตรวจสอบ</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MASTER DATA
+════════════════════════════════════ -->
+<div id="view-master" class="view">
+  <div class="page">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="showMTab('building')">🏢 อาคาร</button>
+      <button class="sub-tab"       onclick="showMTab('floor')">🏬 ชั้น</button>
+      <button class="sub-tab"       onclick="showMTab('location')">📍 สถานที่</button>
+      <button class="sub-tab"       onclick="showMTab('department')">🏛 หน่วยงาน</button>
+      <button class="sub-tab"       onclick="showMTab('equipmenttype')">🏷 ประเภทอุปกรณ์</button>
+      <button class="sub-tab"       onclick="showMTab('equipment')">🧯 อุปกรณ์</button>
+    </div>
+
+    <!-- อาคาร -->
+    <div id="mt-building" class="sub-view active">
+      <div class="card">
+        <div class="card-title">เพิ่มอาคารใหม่</div>
+        <div class="add-form">
+          <div class="f field"><label class="label">ชื่ออาคาร <span class="req">*</span></label><input type="text" class="inp" id="bld-name" placeholder="เช่น อาคาร A" /></div>
+          <button class="btn btn-primary" onclick="doAdd('building')">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">รายการอาคาร</div><div id="ml-building"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- ชั้น -->
+    <div id="mt-floor" class="sub-view">
+      <div class="card">
+        <div class="card-title">เพิ่มชั้นใหม่</div>
+        <div class="add-form">
+          <div class="f field"><label class="label">อาคาร <span class="req">*</span></label><select class="sel" id="fl-bld"><option value="">— เลือกอาคาร —</option></select></div>
+          <div class="f field"><label class="label">ชื่อชั้น <span class="req">*</span></label><input type="text" class="inp" id="fl-name" placeholder="เช่น ชั้น 1" /></div>
+          <button class="btn btn-primary" onclick="doAdd('floor')">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">รายการชั้น</div><div id="ml-floor"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- สถานที่ -->
+    <div id="mt-location" class="sub-view">
+      <div class="card">
+        <div class="card-title">เพิ่มสถานที่ใหม่</div>
+        <div class="add-form">
+          <div class="f field"><label class="label">อาคาร <span class="req">*</span></label><select class="sel" id="loc-bld" onchange="onLocBld()"><option value="">— เลือกอาคาร —</option></select></div>
+          <div class="f field"><label class="label">ชั้น <span class="req">*</span></label><select class="sel" id="loc-fl" disabled><option value="">— เลือกชั้น —</option></select></div>
+          <div class="f field"><label class="label">ชื่อสถานที่ <span class="req">*</span></label><input type="text" class="inp" id="loc-name" placeholder="เช่น ล็อบบี้ชั้น 1" /></div>
+          <button class="btn btn-primary" onclick="doAdd('location')">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">รายการสถานที่</div><div id="ml-location"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- หน่วยงาน -->
+    <div id="mt-department" class="sub-view">
+      <div class="card">
+        <div class="card-title">เพิ่มหน่วยงานใหม่</div>
+        <div class="add-form">
+          <div class="f field"><label class="label">ชื่อหน่วยงาน <span class="req">*</span></label><input type="text" class="inp" id="dept-name" placeholder="เช่น ฝ่ายอาคารสถานที่" /></div>
+          <button class="btn btn-primary" onclick="doAdd('department')">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">รายการหน่วยงาน</div><div id="ml-department"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+
+    <!-- อุปกรณ์ -->
+    <div id="mt-equipment" class="sub-view">
+      <div class="card">
+        <div class="card-title">เพิ่มอุปกรณ์ใหม่</div>
+        <div class="add-form">
+          <div class="f field"><label class="label">ชื่ออุปกรณ์ <span class="req">*</span></label><input type="text" class="inp" id="eq-name" placeholder="เช่น ถังดับเพลิง" /></div>
+          <div class="f field"><label class="label">ประเภท</label><select class="sel" id="eq-type"><option value="">— เลือกประเภท —</option></select></div>
+          <div class="f field"><label class="label">หน่วยงานรับผิดชอบ</label><select class="sel" id="eq-dept"><option value="">— เลือกหน่วยงาน —</option></select></div>
+          <div class="f field"><label class="label">สถานที่ติดตั้ง</label><select class="sel" id="eq-loc"><option value="">— เลือกสถานที่ —</option></select></div>
+          <div class="f field"><label class="label">รหัสครุภัณฑ์</label><input type="text" class="inp" id="eq-code" placeholder="เช่น FE-DRY-001" /></div>
+          <div class="f field"><label class="label">รายละเอียด</label><input type="text" class="inp" id="eq-detail" placeholder="เช่น ขนาด 4 kg" /></div>
+          <button class="btn btn-primary" onclick="doAdd('equipment')">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">รายการอุปกรณ์</div>
+        <input class="inp" id="eq-search" placeholder="ค้นหา ชื่อ, รหัส, ประเภท…" oninput="filterEqList()" autocomplete="off" style="margin-bottom:10px" />
+        <div id="ml-equipment"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ประเภทอุปกรณ์ -->
+    <div id="mt-equipmenttype" class="sub-view">
+      <div class="card">
+        <div class="card-title">เพิ่มประเภทอุปกรณ์ใหม่</div>
+        <div class="add-form">
+          <div class="f field"><label class="label">ชื่อประเภท <span class="req">*</span></label><input type="text" class="inp" id="eqtype-name" placeholder="เช่น ถังดับเพลิง" /></div>
+          <div class="f field"><label class="label">ไอคอน</label><input type="hidden" id="eqtype-emoji" value="label|#1565C0" /><div class="icon-picker" id="eqtype-emoji-grid"></div></div>
+          <button class="btn btn-primary" onclick="doAdd('equipmenttype')">+ เพิ่ม</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">รายการประเภทอุปกรณ์</div><div id="ml-equipmenttype"><div class="loading"><div class="spinner"></div></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SETTINGS
+════════════════════════════════════ -->
+<div id="view-settings" class="view">
+  <div class="page">
+    <div class="sec-title" style="margin-bottom:14px">⚙️ ตั้งค่าระบบ</div>
+    <div class="card">
+      <div class="card-title">📧 Alert Email</div>
+      <div class="field"><label class="label">Email รับแจ้งเตือน</label><input type="email" class="inp" id="alert-email" placeholder="example@company.com" /></div>
+      <button class="btn btn-primary btn-block" onclick="saveEmail()">💾 บันทึก Email</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔒 Admin PIN</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">ล็อกเมนู "ข้อมูลหลัก" และ "ตั้งค่า" — ถ้ายังไม่ตั้ง PIN เมนูนี้จะเปิดได้เสรี</p>
+      <div class="field"><label class="label">PIN ใหม่</label><input type="password" class="inp" id="set-pin-1" placeholder="ตัวเลขหรือตัวอักษร" maxlength="20" /></div>
+      <div class="field"><label class="label">ยืนยัน PIN</label><input type="password" class="inp" id="set-pin-2" placeholder="ใส่ PIN อีกครั้ง" maxlength="20" /></div>
+      <button class="btn btn-primary btn-block" onclick="saveAdminPin()">💾 บันทึก PIN</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏗 ตั้งค่าเริ่มต้น</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">ใช้งานครั้งแรก: สร้าง Sheets และใส่ข้อมูลตัวอย่าง</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary btn-block" onclick="runFn('webSetupSheets','✅ Setup เสร็จสิ้น')">🏗 สร้าง / รีเซ็ต Sheets</button>
+        <button class="btn btn-primary btn-block" onclick="runSeedReal()">🏥 นำเข้าข้อมูลจริง</button>
+        <button class="btn btn-ghost   btn-block" onclick="runSeed()">🌱 ใส่ข้อมูลตัวอย่าง</button>
+        <button class="btn btn-ghost   btn-block" onclick="runFn('setupTimeTrigger','✅ ตั้ง Trigger แล้ว')">⏰ ตั้ง Time-Driven Trigger</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     HISTORY
+════════════════════════════════════ -->
+<div id="view-history" class="view">
+  <div class="page" style="padding-bottom: calc(var(--bnav-total) + 16px)">
+
+    <div class="card">
+      <input class="inp" id="his-q" placeholder="ค้นหา ชื่ออุปกรณ์, รหัส, ผู้ตรวจ, สถานที่…"
+             oninput="applyHistFilter()" autocomplete="off" style="margin-bottom:10px" />
+      <div class="chip-row">
+        <span class="chip his-chip active" onclick="setHisResult('')">ทั้งหมด</span>
+        <span class="chip his-chip" onclick="setHisResult('ปกติ')">✅ ปกติ</span>
+        <span class="chip his-chip" onclick="setHisResult('ชำรุด')">❌ ชำรุด</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <div style="flex:1"><label class="label" style="font-size:12px">จากวันที่</label>
+          <input type="date" class="inp" id="his-from" onchange="applyHistFilter()" /></div>
+        <div style="flex:1"><label class="label" style="font-size:12px">ถึงวันที่</label>
+          <input type="date" class="inp" id="his-to" onchange="applyHistFilter()" /></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="card-title" style="margin:0">รายการตรวจสอบ</div>
+        <div id="his-count" style="font-size:12px;color:var(--muted)"></div>
+      </div>
+      <div id="his-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- History Detail Modal -->
+<div class="pin-backdrop" id="hist-modal" style="display:none" onclick="if(event.target===this)closeHistModal()">
+  <div class="edit-modal-box">
+    <div class="pin-title">รายละเอียดการตรวจสอบ</div>
+    <div id="hist-modal-body"></div>
+    <div class="pin-actions">
+      <button class="btn btn-ghost btn-block" onclick="closeHistModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="pin-backdrop" id="edit-modal" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal-box">
+    <div class="pin-title" id="edit-modal-title">แก้ไข</div>
+    <div id="edit-modal-body"></div>
+    <div class="pin-actions">
+      <button class="btn btn-success" onclick="saveEditModal()" style="flex:1">💾 บันทึก</button>
+      <button class="btn btn-ghost" onclick="closeEditModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Modal -->
+<div class="pin-backdrop" id="pin-modal" style="display:none">
+  <div class="pin-box">
+    <div class="pin-title">🔒 เข้าสู่โหมดผู้ดูแล</div>
+    <div class="pin-sub">กรุณาใส่ PIN เพื่อเข้าถึงเมนูนี้</div>
+    <input type="password" class="inp" id="pin-input" placeholder="PIN" maxlength="20"
+      onkeydown="if(event.key==='Enter')submitAdminPin()" />
+    <div class="pin-err" id="pin-error" style="display:none">PIN ไม่ถูกต้อง กรุณาลองใหม่</div>
+    <div class="pin-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closePinModal()">ยกเลิก</button>
+      <button class="btn btn-primary" style="flex:1" onclick="submitAdminPin()">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<?!= HtmlService.createHtmlOutputFromFile('Script').getContent(); ?>
+</body>
+</html>

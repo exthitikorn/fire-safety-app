@@ -20,10 +20,12 @@
   <iframe id="app" allow="*"></iframe>
   <script>
     var BASE = 'https://script.google.com/macros/s/AKfycbzBbO1wvI7sPyQhoCxL4N_6bhdV5W9kWXQJqzFMZuV-mlLR7OyG5gr3XBK5lqPrgvhWeg/exec';
+    var VALID = {dashboard:1, inspection:1, history:1};
     var iframe = document.getElementById('app');
 
     function applyHash() {
-      iframe.src = BASE + (window.location.hash || '');
+      var hash = window.location.hash.slice(1);
+      iframe.src = BASE + (VALID[hash] ? '?view=' + hash : '');
     }
 
     window.addEventListener('hashchange', applyHash);
