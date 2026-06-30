@@ -135,7 +135,9 @@ window.addEventListener('hashchange', function() {
 });
 
 window.addEventListener('load', function() {
-  var view = (typeof INITIAL_VIEW !== 'undefined' && INITIAL_VIEW) ? INITIAL_VIEW : window.location.hash.slice(1);
+  var params = new URLSearchParams(window.location.search);
+  var qView  = params.get('view');
+  var view   = qView || ((typeof INITIAL_VIEW !== 'undefined' && INITIAL_VIEW) ? INITIAL_VIEW : window.location.hash.slice(1));
   if (VALID_VIEWS[view] !== undefined) showView(view, true);
 });
 
