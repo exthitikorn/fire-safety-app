@@ -1,0 +1,6 @@
+$DEPLOYMENT_ID = "YOUR_DEPLOYMENT_ID"
+
+clasp push
+if ($LASTEXITCODE -ne 0) { exit 1 }
+
+clasp deploy --deploymentId $DEPLOYMENT_ID

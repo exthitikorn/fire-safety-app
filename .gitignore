@@ -1,0 +1,8 @@
+# GAS credentials — contains scriptId
+.clasp.json
+
+# Deployment script — contains DEPLOYMENT_ID
+deploy.ps1
+
+# clasp auth token
+.clasprc.json
