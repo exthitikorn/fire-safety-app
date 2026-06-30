@@ -17,9 +17,17 @@
   </style>
 </head>
 <body>
-  <iframe
-    src="https://script.google.com/macros/s/AKfycbzBbO1wvI7sPyQhoCxL4N_6bhdV5W9kWXQJqzFMZuV-mlLR7OyG5gr3XBK5lqPrgvhWeg/exec"
-    allow="*"
-  ></iframe>
+  <iframe id="app" allow="*"></iframe>
+  <script>
+    var BASE = 'https://script.google.com/macros/s/AKfycbzBbO1wvI7sPyQhoCxL4N_6bhdV5W9kWXQJqzFMZuV-mlLR7OyG5gr3XBK5lqPrgvhWeg/exec';
+    var iframe = document.getElementById('app');
+
+    function applyHash() {
+      iframe.src = BASE + (window.location.hash || '');
+    }
+
+    window.addEventListener('hashchange', applyHash);
+    applyHash();
+  </script>
 </body>
 </html>
